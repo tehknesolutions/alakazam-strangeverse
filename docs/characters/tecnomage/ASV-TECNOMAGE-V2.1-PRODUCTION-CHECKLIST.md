@@ -1,0 +1,26 @@
+# ASV Tecnomago V2.1 — Production Checklist
+
+- [ ] Import and lock the Hunyuan high-poly source
+- [ ] Retopo head / face
+- [ ] Retopo hair
+- [ ] Retopo body / torso
+- [ ] Retopo coat upper
+- [ ] Retopo three principal coat-tail panels
+- [ ] Remodel Nexus gauntlet
+- [ ] Simplify left arm
+- [ ] Simplify waist accessories
+- [ ] Retopo legs
+- [ ] Retopo boots
+- [ ] Remodel chest Tiferet emblem
+- [ ] Add TPS-readable back sigil
+- [ ] UV unwrap
+- [ ] Bake HP normal map
+- [ ] Bake AO / curvature as needed
+- [ ] Assign controlled ASV material roles
+- [ ] Validate 50k–65k LOD0 triangle budget
+- [ ] Rig humanoid
+- [ ] Add secondary coat bones
+- [ ] Test Idle / Walk / Sprint / Roll / Sword Combo / Pulse
+- [ ] Capture front / side / back / close-up gate set
+- [ ] Obtain user visual score >= 8/10
+- [ ] Only then branch Hod / Yesod production variants
