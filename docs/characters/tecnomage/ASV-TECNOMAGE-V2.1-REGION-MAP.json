@@ -1,0 +1,17 @@
+{
+  "source": "ASV-tecnomago-model-3D-01.glb",
+  "status": "APPROVED_FOR_RETOPO_AND_AUTHORIAL_REFINEMENT",
+  "regions": {
+    "FACE_HAIR": {"action":"KEEP + REFINE","priority":"HIGH","notes":"Preserve head proportions and hair silhouette; clean facial planes and reduce generated micro-noise."},
+    "CHEST_TIFERET": {"action":"REMODEL","priority":"CRITICAL","notes":"Replace generic fantasy ornament with smaller geometric Tiferet/Convergence emblem, ritual-gold structure and cyan Nexus core."},
+    "GAUNTLET_NEXUS_R": {"action":"REMODEL","priority":"CRITICAL","notes":"Cohesive asymmetric shell with hand continuity, restrained gold frame and cyan emissive channels; silhouette-readable."},
+    "LEFT_ARM": {"action":"SIMPLIFY","priority":"MEDIUM","notes":"Reduce symmetric fantasy armor cues; keep functional sleeve/bracer only."},
+    "WAIST_ACCESSORIES": {"action":"SIMPLIFY_30_40_PERCENT","priority":"HIGH","notes":"Remove redundant rings, buckles, straps and dangling micro-parts."},
+    "COAT_FRONT": {"action":"KEEP + RETOPO","priority":"CRITICAL","notes":"Preserve long-coat silhouette/asymmetry; rebuild clean cloth topology."},
+    "COAT_BACK": {"action":"KEEP + RETOPO","priority":"CRITICAL","notes":"Preserve major volumes around shoulders, spine and pelvis."},
+    "COAT_TAILS": {"action":"KEEP + REBUILD TOPOLOGY","priority":"CRITICAL","notes":"Separate into three principal deformable panels and plan secondary bones."},
+    "LEGS": {"action":"KEEP + SIMPLIFY","priority":"MEDIUM","notes":"Preserve proportions; clean knee and ankle deformation zones."},
+    "BOOTS": {"action":"KEEP + RETOPO","priority":"MEDIUM","notes":"Preserve silhouette; bake micro-detail into normals."},
+    "BACK_SIGIL": {"action":"ADD / REMODEL","priority":"CRITICAL","notes":"Elegant TPS-readable Convergence/Tiferet signature, not oversized."}
+  }
+}
