@@ -1,0 +1,48 @@
+{
+  "milestone": "ASV_TECNOMAGO_V2.8_RUNTIME_QA",
+  "runtime_primary": "tecnomage-prime-v2.8-runtime-q.glb",
+  "runtime_float": "tecnomage-prime-v2.8-runtime-optimized.glb",
+  "active_triangles": 63529,
+  "joints": 71,
+  "runtime_clips": 8,
+  "temporal_samples_per_clip": 9,
+  "total_sampled_states": 72,
+  "stretch_gate": {
+    "pass_if": "p99 < 1.35 and fraction(edge_ratio>1.5) < 0.03",
+    "visible_shell_excludes_name_contains": "UNDERSUIT"
+  },
+  "clips": {
+    "UAL1_Idle_Loop": {"duration_seconds": 2.5, "status": "PASS", "worst_normalized_time": 1.0, "worst_p95": 1.0000002745352627, "worst_p99": 1.0000002836922612, "worst_max_edge_ratio": 1.0000002864761262, "worst_fraction_edges_gt_1_5": 0.0, "worst_part": "ASV_UPPER_L_V27B_BAKED"},
+    "UAL1_Walk_Loop": {"duration_seconds": 1.3333333730697632, "status": "PASS", "worst_normalized_time": 0.0, "worst_p95": 1.000000340904796, "worst_p99": 1.000000347110211, "worst_max_edge_ratio": 1.000000347507707, "worst_fraction_edges_gt_1_5": 0.0, "worst_part": "ASV_KNEE_CUFF_L_V27B_BAKED"},
+    "UAL1_Jog_Fwd_Loop": {"duration_seconds": 0.9333333373069763, "status": "PASS", "worst_normalized_time": 0.0, "worst_p95": 1.0000002769584766, "worst_p99": 1.000000302588504, "worst_max_edge_ratio": 1.0000003137571345, "worst_fraction_edges_gt_1_5": 0.0, "worst_part": "ASV_HYBRID_GAUNTLET_HAND_R"},
+    "UAL1_Sprint_Loop": {"duration_seconds": 0.6666666865348816, "status": "PASS", "worst_normalized_time": 0.0, "worst_p95": 1.0000003080294542, "worst_p99": 1.0000003276559475, "worst_max_edge_ratio": 1.0000003361094163, "worst_fraction_edges_gt_1_5": 0.0, "worst_part": "ASV_HYBRID_GAUNTLET_HAND_R"},
+    "UAL1_Roll": {"duration_seconds": 1.4666666984558105, "status": "PASS", "worst_normalized_time": 0.0, "worst_p95": 1.000000201211784, "worst_p99": 1.000000241983991, "worst_max_edge_ratio": 1.0000002543838147, "worst_fraction_edges_gt_1_5": 0.0, "worst_part": "ASV_CALF_R_V27B_BAKED"},
+    "UAL1_Spell_Simple_Shoot": {"duration_seconds": 0.5, "status": "PASS", "worst_normalized_time": 0.5, "worst_p95": 1.0000002277515876, "worst_p99": 1.0000002378785584, "worst_max_edge_ratio": 1.0000002399452843, "worst_fraction_edges_gt_1_5": 0.0, "worst_part": "ASV_FOREARM_L_V27B_BAKED"},
+    "UAL1_Sword_Attack": {"duration_seconds": 1.5333333015441895, "status": "PASS", "worst_normalized_time": 0.25, "worst_p95": 1.0000003541889415, "worst_p99": 1.0000003728963993, "worst_max_edge_ratio": 1.0000003788876055, "worst_fraction_edges_gt_1_5": 0.0, "worst_part": "ASV_HYBRID_BOOT_L"},
+    "UAL2_Sword_Heavy_Combo": {"duration_seconds": 4.333333492279053, "status": "PASS", "worst_normalized_time": 0.125, "worst_p95": 1.0000002461775854, "worst_p99": 1.0000002694105457, "worst_max_edge_ratio": 1.0000002718132825, "worst_fraction_edges_gt_1_5": 0.0, "worst_part": "ASV_HYBRID_GAUNTLET_HAND_R"}
+  },
+  "quantized_vs_float": {
+    "samples_per_clip": 9,
+    "all_runtime_clips": true,
+    "max_world_space_vertex_delta": 1.5105327176756843e-05,
+    "worst_clip": "UAL1_Walk_Loop",
+    "worst_normalized_time": 0.0,
+    "worst_part": "ASV_HAIR_AUTHORED_WINDOW",
+    "worst_vertex_index": 131,
+    "per_clip_max_delta": {
+      "UAL1_Idle_Loop": 1.5105326772397268e-05,
+      "UAL1_Walk_Loop": 1.5105327176756843e-05,
+      "UAL1_Jog_Fwd_Loop": 1.5105325165264001e-05,
+      "UAL1_Sprint_Loop": 1.510532621474792e-05,
+      "UAL1_Roll": 1.5105325975329856e-05,
+      "UAL1_Spell_Simple_Shoot": 1.5105325700263128e-05,
+      "UAL1_Sword_Attack": 1.5105326639162206e-05,
+      "UAL2_Sword_Heavy_Combo": 1.5105325508873238e-05
+    }
+  },
+  "limitations": [
+    "edge-length stretch gate does not prove zero inter-part clipping",
+    "CPU skinning comparison validates geometry equivalence but not final WebGL material/renderer appearance",
+    "browser smoke test remains required after a deployment can run"
+  ]
+}
