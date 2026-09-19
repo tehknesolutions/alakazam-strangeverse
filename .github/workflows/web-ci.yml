@@ -1,9 +1,6 @@
 name: Web CI
 
 on:
-  push:
-    branches:
-      - feat/asv-tecnomage-v2-8-runtime
   pull_request:
     branches: [main]
   workflow_dispatch:
