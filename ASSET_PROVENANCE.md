@@ -25,3 +25,18 @@ External asset failure must not prevent the core test scene from loading. Proced
 - Runtime role: temporary humanoid Tecnomage base, not final Alakazam/Strangeverse hero art
 - Modification policy: textures may be web-optimized; source rig/skin hierarchy must remain intact until animation compatibility is verified
 - Animation gate remains separate: locomotion/action clips must be sourced, licensed, mapped and browser-tested before M14-WEB-B2 is closed.
+
+## V2.8 — Tecnomage Prime runtime candidate
+
+- Project asset: `tecnomage-prime-v2.8-runtime-q.glb`
+- Visual source lineage: project-generated Tecnomage Prime V2.7Y, ultimately derived from the user-supplied/generated Hunyuan3D 2.1 character source and subsequent ASV procedural/semantic refinement passes.
+- Runtime role: primary Tecnomage Prime / Tiferet hero candidate for the Web runtime.
+- V2.8 runtime SHA-256: `c521867422f071f69855087c0495a47f11cc907601951e10f525bef55999be7c`
+- Runtime size: 1,508,728 bytes (~1.439 MiB)
+- Active geometry: 63,529 triangles
+- Rig: 1 skin / 71 joints
+- Runtime animation subset: 8 embedded clips
+- Quantization: shared affine int16 normalized POSITION + int8 normalized NORMAL via `KHR_mesh_quantization`; uint8 normalized weights; uint16 normalized UV where retained.
+- Validation: structural GLB reference/range audit passed with 0 errors; skin weight sums are exact after quantization; CPU skinning comparison against the float runtime showed maximum sampled world-space delta ~1.513e-05 model units.
+- Redistribution note: this section records project lineage and technical transformation; it does not make a new legal claim about third-party model-generator licensing.
+- Legacy fallback: the Quaternius CC0 `tecnomage.gltf` remains available if the V2.8 hero cannot be loaded.

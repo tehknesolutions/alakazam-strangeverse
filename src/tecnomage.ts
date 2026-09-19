@@ -16,6 +16,25 @@ const BONE_NAMES:BoneName[]=[
   'thigh_l','thigh_r','calf_l','calf_r'
 ];
 
+const HERO_URL='/assets/characters/tecnomage-prime-v2.8-runtime-q.glb';
+const HERO_FLOAT_FALLBACK_URL='/assets/characters/tecnomage-prime-v2.8-runtime-optimized.glb';
+const LEGACY_URL='/assets/characters/tecnomage.gltf';
+
+const CLIP_BY_STATE:Record<TecnomageState,string>={
+  IDLE:'UAL1_Idle_Loop',
+  WALK:'UAL1_Walk_Loop',
+  RUN:'UAL1_Jog_Fwd_Loop',
+  SPRINT:'UAL1_Sprint_Loop',
+  DODGE:'UAL1_Roll',
+  PULSE:'UAL1_Spell_Simple_Shoot',
+  ATTACK_LIGHT:'UAL1_Sword_Attack',
+  ATTACK_HEAVY:'UAL2_Sword_Heavy_Combo'
+};
+
+const ONE_SHOT_STATES=new Set<TecnomageState>([
+  'DODGE','PULSE','ATTACK_LIGHT','ATTACK_HEAVY'
+]);
+
 export class TecnomageController{
   readonly root=new THREE.Group();
   private fallback:THREE.Object3D;
@@ -26,6 +45,12 @@ export class TecnomageController{
   private bones=new Map<BoneName,THREE.Object3D>();
   private rest=new Map<BoneName,THREE.Quaternion>();
   private energy?:THREE.Mesh<THREE.OctahedronGeometry,THREE.MeshStandardMaterial>;
+  private mixer?:THREE.AnimationMixer;
+  private actions=new Map<TecnomageState,THREE.AnimationAction>();
+  private activeAction?:THREE.AnimationAction;
+  private embeddedAnimationMode=false;
+  private heroIdentityMaterials=new Map<THREE.MeshStandardMaterial,number>();
+  private pulseResetTimer?:number;
   private tmpEuler=new THREE.Euler();
   private tmpOffset=new THREE.Quaternion();
   private tmpTarget=new THREE.Quaternion();
@@ -35,57 +60,202 @@ export class TecnomageController{
     this.root.add(this.fallback);
   }
 
-  async load(url='/assets/characters/tecnomage.gltf'){
-    try{
-      const gltf=await new GLTFLoader().loadAsync(url);
-      const model=gltf.scene;
-      model.traverse(o=>{
-        if(o instanceof THREE.Mesh){o.castShadow=true;o.receiveShadow=true;o.visible=true}
-      });
-      for(const required of ['Eyebrows','Eyes','SuperHero_Male']){
-        const part=model.getObjectByName(required);
-        if(part)part.visible=true;
+  async load(url=HERO_URL){
+    const attempts=[url,HERO_FLOAT_FALLBACK_URL,LEGACY_URL];
+    const unique=[...new Set(attempts)];
+    for(const candidate of unique){
+      try{
+        const loaded=await this.loadAsset(candidate);
+        if(loaded)return true;
+      }catch(error){
+        console.warn(`[V2.8] Tecnomage asset failed: ${candidate}`,error);
       }
-      const box=new THREE.Box3().setFromObject(model),size=new THREE.Vector3();box.getSize(size);
-      if(size.y>0)model.scale.setScalar(2.25/size.y);
-      box.setFromObject(model);model.position.y-=box.min.y;
-      this.model=model;
-      this.bindBones(model);
-      this.root.remove(this.fallback);
-      this.root.add(model);
-      this.addEnergyCore();
-      console.info('[M15-F] Tecnomage base loaded with face/eyes/hair and procedural rig',{
-        bones:[...this.bones.keys()],embeddedAnimations:gltf.animations.map(a=>a.name)
-      });
-      return true;
-    }catch(error){
-      console.warn('[M15-F] Tecnomage glTF unavailable; procedural fallback active.',error);
-      return false;
     }
+    console.warn('[V2.8] All Tecnomage assets unavailable; procedural fallback active.');
+    return false;
+  }
+
+  private async loadAsset(url:string){
+    const gltf=await new GLTFLoader().loadAsync(url);
+    const model=gltf.scene;
+    model.name=url.includes('v2.8')?'TecnomagePrimeV28':'TecnomageLegacy';
+    model.traverse(o=>{
+      if(o instanceof THREE.Mesh){
+        o.castShadow=true;
+        o.receiveShadow=true;
+        o.visible=true;
+        if(o instanceof THREE.SkinnedMesh)o.frustumCulled=false;
+      }
+    });
+
+    for(const required of ['Eyebrows','Eyes','SuperHero_Male']){
+      const part=model.getObjectByName(required);
+      if(part)part.visible=true;
+    }
+
+    const box=new THREE.Box3().setFromObject(model);
+    const size=new THREE.Vector3();
+    box.getSize(size);
+    if(size.y>0)model.scale.setScalar(2.25/size.y);
+    box.setFromObject(model);
+    model.position.y-=box.min.y;
+
+    this.detachCurrentModel();
+    this.model=model;
+    this.root.remove(this.fallback);
+    this.root.add(model);
+
+    this.captureHeroIdentityMaterials(model);
+    const embedded=this.configureEmbeddedAnimations(model,gltf.animations);
+    if(!embedded){
+      this.bindBones(model);
+      this.addLegacyEnergyCore();
+    }
+
+    console.info('[V2.8] Tecnomage loaded',{
+      url,
+      embeddedAnimationMode:embedded,
+      animations:gltf.animations.map(a=>a.name),
+      mappedStates:[...this.actions.keys()],
+      heroIdentityMaterials:this.heroIdentityMaterials.size
+    });
+    return true;
   }
 
   update(dt:number,next:TecnomageState){
-    if(next!==this.state){this.state=next;this.stateTime=0}
+    if(next!==this.state){
+      this.state=next;
+      this.stateTime=0;
+      if(this.embeddedAnimationMode)this.transitionAnimation(next);
+    }
     this.stateTime+=dt;
     const cadence=next==='SPRINT'?11:next==='RUN'?8.2:next==='WALK'?5.2:2;
     this.gaitPhase+=dt*cadence;
-    if(this.model)this.animateRig(dt,next);
-    else this.animateFallback(dt,next);
+
+    if(this.embeddedAnimationMode&&this.mixer){
+      this.mixer.update(dt);
+    }else if(this.model){
+      this.animateRig(dt,next);
+    }else{
+      this.animateFallback(dt,next);
+    }
   }
 
   pulse(){
+    if(this.heroIdentityMaterials.size){
+      if(this.pulseResetTimer!==undefined)window.clearTimeout(this.pulseResetTimer);
+      for(const [material,base] of this.heroIdentityMaterials){
+        material.emissiveIntensity=Math.max(5.5,base*3.2);
+      }
+      this.pulseResetTimer=window.setTimeout(()=>{
+        for(const [material,base] of this.heroIdentityMaterials){
+          material.emissiveIntensity=base;
+        }
+      },220);
+      return;
+    }
+
     if(!this.energy)return;
     this.energy.material.emissiveIntensity=14;
     this.energy.scale.setScalar(1.45);
-    setTimeout(()=>{
+    window.setTimeout(()=>{
       if(!this.energy)return;
       this.energy.material.emissiveIntensity=3.5;
       this.energy.scale.setScalar(1);
     },220);
   }
 
+  private configureEmbeddedAnimations(model:THREE.Object3D,clips:THREE.AnimationClip[]){
+    this.actions.clear();
+    this.activeAction=undefined;
+    this.mixer=undefined;
+    this.embeddedAnimationMode=false;
+
+    const byName=new Map(clips.map(clip=>[clip.name.toLowerCase(),clip]));
+    const mixer=new THREE.AnimationMixer(model);
+    for(const [state,clipName] of Object.entries(CLIP_BY_STATE) as [TecnomageState,string][]){
+      const clip=byName.get(clipName.toLowerCase());
+      if(!clip)continue;
+      const action=mixer.clipAction(clip);
+      action.enabled=true;
+      if(ONE_SHOT_STATES.has(state)){
+        action.setLoop(THREE.LoopOnce,1);
+        action.clampWhenFinished=true;
+      }else{
+        action.setLoop(THREE.LoopRepeat,Infinity);
+        action.clampWhenFinished=false;
+      }
+      this.actions.set(state,action);
+    }
+
+    if(!this.actions.has('IDLE')||this.actions.size<4){
+      mixer.stopAllAction();
+      return false;
+    }
+
+    this.mixer=mixer;
+    this.embeddedAnimationMode=true;
+    this.transitionAnimation('IDLE',0);
+    return true;
+  }
+
+  private transitionAnimation(state:TecnomageState,fade?:number){
+    if(!this.mixer)return;
+    const next=this.actions.get(state)
+      ??this.actions.get(state==='WALK'?'RUN':'IDLE')
+      ??this.actions.get('IDLE');
+    if(!next||next===this.activeAction)return;
+
+    const duration=fade??(ONE_SHOT_STATES.has(state)?.055:.13);
+    next.enabled=true;
+    next.reset();
+    next.setEffectiveTimeScale(1);
+    next.setEffectiveWeight(1);
+    next.play();
+
+    if(this.activeAction){
+      this.activeAction.crossFadeTo(next,duration,false);
+    }else if(duration>0){
+      next.fadeIn(duration);
+    }
+    this.activeAction=next;
+  }
+
+  private captureHeroIdentityMaterials(model:THREE.Object3D){
+    this.heroIdentityMaterials.clear();
+    model.traverse(o=>{
+      if(!(o instanceof THREE.Mesh))return;
+      const materials=Array.isArray(o.material)?o.material:[o.material];
+      for(const material of materials){
+        if(!(material instanceof THREE.MeshStandardMaterial))continue;
+        const identity=`${o.name} ${material.name}`.toUpperCase();
+        if(!/(NEXUS|TIFERET)/.test(identity))continue;
+        this.heroIdentityMaterials.set(material,material.emissiveIntensity);
+      }
+    });
+  }
+
+  private detachCurrentModel(){
+    if(this.model)this.root.remove(this.model);
+    if(this.energy){
+      this.root.remove(this.energy);
+      this.energy.geometry.dispose();
+      this.energy.material.dispose();
+      this.energy=undefined;
+    }
+    this.mixer?.stopAllAction();
+    this.mixer=undefined;
+    this.actions.clear();
+    this.activeAction=undefined;
+    this.embeddedAnimationMode=false;
+    this.heroIdentityMaterials.clear();
+    this.bones.clear();
+    this.rest.clear();
+  }
+
   private bindBones(model:THREE.Object3D){
-    this.bones.clear();this.rest.clear();
+    this.bones.clear();
+    this.rest.clear();
     for(const name of BONE_NAMES){
       const bone=model.getObjectByName(name);
       if(!bone)continue;
@@ -94,7 +264,8 @@ export class TecnomageController{
     }
   }
 
-  private addEnergyCore(){
+  private addLegacyEnergyCore(){
+    if(this.heroIdentityMaterials.size)return;
     const material=new THREE.MeshStandardMaterial({
       color:0x80efff,emissive:0x08b9e9,emissiveIntensity:3.5,
       metalness:.25,roughness:.2
@@ -109,7 +280,7 @@ export class TecnomageController{
   private animateRig(dt:number,state:TecnomageState){
     const pose=new Map<BoneName,[number,number,number]>();
     const set=(n:BoneName,x=0,y=0,z=0)=>pose.set(n,[x,y,z]);
-    const s=Math.sin(this.gaitPhase),c=Math.cos(this.gaitPhase);
+    const s=Math.sin(this.gaitPhase);
 
     if(state==='IDLE'){
       set('spine_03',Math.sin(this.stateTime*2.1)*.018,0,0);
@@ -174,11 +345,18 @@ export class TecnomageController{
   }
 
   private makeFallback(){
-    const g=new THREE.Group(),dark=new THREE.MeshStandardMaterial({color:0x252b34,metalness:.3,roughness:.48}),energy=new THREE.MeshStandardMaterial({color:0x28e0c0,emissive:0x087b70,emissiveIntensity:3});
+    const g=new THREE.Group();
+    const dark=new THREE.MeshStandardMaterial({color:0x252b34,metalness:.3,roughness:.48});
+    const energy=new THREE.MeshStandardMaterial({color:0x28e0c0,emissive:0x087b70,emissiveIntensity:3});
     const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.38,.72,5,10),dark);torso.position.y=1.25;g.add(torso);
     const head=new THREE.Mesh(new THREE.SphereGeometry(.28,16,12),dark);head.position.y=2;g.add(head);
-    for(const x of[-.22,.22]){const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.11,.52,4,8),dark);leg.position.set(x,.45,0);g.add(leg)}
-    const core=new THREE.Mesh(new THREE.OctahedronGeometry(.14),energy);core.name='pulse-core';core.position.set(0,1.4,.38);g.add(core);
-    g.traverse(o=>{if(o instanceof THREE.Mesh)o.castShadow=true});return g;
+    for(const x of[-.22,.22]){
+      const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.11,.52,4,8),dark);
+      leg.position.set(x,.45,0);g.add(leg);
+    }
+    const core=new THREE.Mesh(new THREE.OctahedronGeometry(.14),energy);
+    core.name='pulse-core';core.position.set(0,1.4,.38);g.add(core);
+    g.traverse(o=>{if(o instanceof THREE.Mesh)o.castShadow=true});
+    return g;
   }
 }
