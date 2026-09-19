@@ -4,20 +4,40 @@ import {TecnomageController,type TecnomageState} from './tecnomage';
 
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x07120f);
-scene.fog=new THREE.FogExp2(0x10251d,.026);
+scene.fog=new THREE.FogExp2(0x10251d,.023);
 
-const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,160);
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,160);
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth,innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.15;
+renderer.toneMappingExposure=1.05;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
 document.querySelector('#app')!.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xa6ddff,0x112f1a,2));
-const sun=new THREE.DirectionalLight(0xffe7bd,4);
-sun.position.set(-12,18,8);sun.castShadow=true;scene.add(sun);
+// V2.8C Runtime Visual Parity rig:
+// cool sky/fill preserves ivory/black separation, warm key reveals gold,
+// and a character-following rim restores the hero silhouette in TPS gameplay.
+scene.add(new THREE.HemisphereLight(0xb9d9ff,0x101812,1.35));
+const sun=new THREE.DirectionalLight(0xffdfb5,3.1);
+sun.position.set(-10,16,7);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.near=.5;
+sun.shadow.camera.far=55;
+sun.shadow.camera.left=-16;
+sun.shadow.camera.right=16;
+sun.shadow.camera.top=16;
+sun.shadow.camera.bottom=-16;
+sun.shadow.bias=-.00015;
+scene.add(sun);
+
+const heroKey=new THREE.DirectionalLight(0xffd6a0,1.45);
+const heroRim=new THREE.DirectionalLight(0x8fcfff,2.15);
+const heroFill=new THREE.PointLight(0xe9f3ff,.8,8,2);
+scene.add(heroKey,heroRim,heroFill);
 
 const MAP_RADIUS=22.5;
 const PLAYER_RADIUS=.38;
@@ -94,14 +114,14 @@ addEventListener('keydown',e=>{
 });
 addEventListener('keyup',e=>keys.delete(e.code));
 
-let yaw=.65,pitch=.42,drag=false,px=0,py=0;
+let yaw=.65,pitch=.34,drag=false,px=0,py=0;
 renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.button!==0&&e.button!==2)return;drag=true;px=e.clientX;py=e.clientY});
 addEventListener('pointerup',()=>drag=false);
 addEventListener('pointermove',e=>{
   if(!drag)return;
   yaw-=(e.clientX-px)*.006;
-  pitch=Math.max(.15,Math.min(1.05,pitch+(e.clientY-py)*.004));
+  pitch=Math.max(.12,Math.min(.92,pitch+(e.clientY-py)*.004));
   px=e.clientX;py=e.clientY;
 });
 
@@ -150,18 +170,17 @@ function loop(){
     if(dodge>0)speed=13;
     if(actionLocked)speed*=attackHeavy>0?.15:.35;
     moveWithSlide(v,speed*dt);
-    // Universal Base Characters face -Z at rest; this keeps the visual body facing travel direction.
     player.rotation.y=Math.atan2(v.x,v.z)+Math.PI;
     if(!actionLocked)state=dodge>0?'DODGE':walk?'WALK':sprint?'SPRINT':'RUN';
   }
 
   tecnomage.update(dt,state);
 
-  const target=new THREE.Vector3(player.position.x,1.25,player.position.z);
+  const target=new THREE.Vector3(player.position.x,1.32,player.position.z);
   const desired=new THREE.Vector3(
-    player.position.x+Math.sin(yaw)*Math.cos(pitch)*8,
-    player.position.y+Math.sin(pitch)*8+1,
-    player.position.z+Math.cos(yaw)*Math.cos(pitch)*8
+    player.position.x+Math.sin(yaw)*Math.cos(pitch)*6.8,
+    player.position.y+Math.sin(pitch)*6.8+1.05,
+    player.position.z+Math.cos(yaw)*Math.cos(pitch)*6.8
   );
   const dir=desired.clone().sub(target),max=dir.length();
   cameraRay.set(target,dir.clone().normalize());
@@ -169,6 +188,15 @@ function loop(){
   const safe=hits.length&&hits[0].distance<max?Math.max(1.7,hits[0].distance-.42):max;
   camera.position.lerp(target.clone().addScaledVector(dir.normalize(),safe),.18);
   camera.lookAt(target);
+
+  // Character-following studio/gameplay hybrid lighting.
+  heroKey.position.set(player.position.x-4,player.position.y+6,player.position.z+5);
+  heroKey.target.position.set(player.position.x,player.position.y+1.15,player.position.z);
+  scene.add(heroKey.target);
+  heroRim.position.set(player.position.x+4.5,player.position.y+4.5,player.position.z-5);
+  heroRim.target.position.copy(heroKey.target.position);
+  scene.add(heroRim.target);
+  heroFill.position.set(player.position.x,player.position.y+1.7,player.position.z+2.1);
 
   nexus.rotation.y+=dt*.35;
   nexus.children.forEach((c,i)=>c.rotation.z+=dt*(.12+i*.05));
