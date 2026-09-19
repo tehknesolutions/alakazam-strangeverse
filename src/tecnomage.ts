@@ -85,6 +85,7 @@ export class TecnomageController{
         o.receiveShadow=true;
         o.visible=true;
         if(o instanceof THREE.SkinnedMesh)o.frustumCulled=false;
+        this.tuneRuntimeMaterial(o);
       }
     });
 
@@ -219,6 +220,38 @@ export class TecnomageController{
       next.fadeIn(duration);
     }
     this.activeAction=next;
+  }
+
+  private tuneRuntimeMaterial(mesh:THREE.Mesh){
+    const materials=Array.isArray(mesh.material)?mesh.material:[mesh.material];
+    for(const material of materials){
+      if(!(material instanceof THREE.MeshStandardMaterial))continue;
+      const identity=`${mesh.name} ${material.name}`.toUpperCase();
+
+      // Runtime parity only: preserve authored color/texture and tune the PBR response.
+      // Geometry and UVs remain untouched in V2.8C.
+      if(/SKIN|FACE/.test(identity)){
+        material.metalness=0;
+        material.roughness=Math.max(material.roughness,.62);
+      }else if(/HAIR/.test(identity)){
+        material.metalness=0;
+        material.roughness=.48;
+      }else if(/GOLD|RITUAL/.test(identity)){
+        material.metalness=Math.max(material.metalness,.78);
+        material.roughness=.27;
+      }else if(/METAL|NEXUS/.test(identity)){
+        material.metalness=Math.max(material.metalness,.7);
+        material.roughness=Math.min(material.roughness,.31);
+      }else if(/IVORY|COUTURE|FABRIC|COAT/.test(identity)){
+        material.metalness=Math.min(material.metalness,.08);
+        material.roughness=Math.max(material.roughness,.58);
+      }
+
+      if(/NEXUS|TIFERET/.test(identity)){
+        material.emissiveIntensity=Math.max(material.emissiveIntensity,2.35);
+      }
+      material.needsUpdate=true;
+    }
   }
 
   private captureHeroIdentityMaterials(model:THREE.Object3D){
