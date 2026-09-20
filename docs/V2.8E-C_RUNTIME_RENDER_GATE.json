@@ -1,0 +1,28 @@
+{
+  "milestone": "ASV_TECNOMAGE_V2.8E_C_RUNTIME_RENDER_GATE",
+  "status": "BLOCKED_EB_BINARY_NOT_IN_REPOSITORY",
+  "baseline_score": 6,
+  "presentation_lock": "V2.8C",
+  "eb_expected": {
+    "triangles": 47820,
+    "materials": 16,
+    "quantized_sha256": "e87ec61984e33adc73b12ea23d9d884e0fe696cf2b9e59df07e488e7180b43e1",
+    "float_sha256": "4559c98e436f0b0dd299a8b0affd1b2fe3436f08622b4b2b952ebae86332d57c"
+  },
+  "repository_runtime": {
+    "triangles": 63529,
+    "primary": "tecnomage-prime-v2.8-runtime-q.glb",
+    "float": "tecnomage-prime-v2.8-runtime-optimized.glb"
+  },
+  "capture_required": [
+    "front",
+    "three_quarter",
+    "profile",
+    "back",
+    "tps_idle",
+    "tps_motion_secondary_motion"
+  ],
+  "score_policy": "NO_NEW_SCORE_BEFORE_EQUIVALENT_RUNTIME_AB_EVIDENCE",
+  "next_on_pass": "V2.8F__PROMOTION_CANDIDATE__CHARACTER_INTEGRATION",
+  "next_on_targeted_failure": "V2.8E-C1__TARGETED_CORRECTION"
+}
